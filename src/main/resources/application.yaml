@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: assistant-langgraph
+  ai:
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:}
+      chat:
+        model: deepseek-v4-flash
+        temperature: 0.8

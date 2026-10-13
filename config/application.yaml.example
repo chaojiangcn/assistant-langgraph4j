@@ -1,0 +1,4 @@
+spring:
+  ai:
+    deepseek:
+      api-key: your-deepseek-api-key

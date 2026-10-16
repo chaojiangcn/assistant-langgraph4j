@@ -1,6 +1,6 @@
 package com.space.cloud.assistantlanggraph.controller;
 
-import com.space.cloud.assistantlanggraph.workflow.SimpleGraphApp;
+import com.space.cloud.assistantlanggraph.workflow.greeting.GreetingGraphApp;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,19 +11,19 @@ import reactor.core.publisher.Flux;
 import java.util.Map;
 
 /**
- * 简单工作流接口。
+ * 问候工作流接口。
  */
 @RestController
 @RequestMapping("/ai/graph")
-public class GraphController {
+public class GreetingController {
 
-    private final SimpleGraphApp simpleGraphApp;
+    private final GreetingGraphApp greetingGraphApp;
 
     /**
-     * @param simpleGraphApp 已编译的简单工作流
+     * @param greetingGraphApp 已编译的问候工作流
      */
-    public GraphController(SimpleGraphApp simpleGraphApp) {
-        this.simpleGraphApp = simpleGraphApp;
+    public GreetingController(GreetingGraphApp greetingGraphApp) {
+        this.greetingGraphApp = greetingGraphApp;
     }
 
     /**
@@ -34,6 +34,6 @@ public class GraphController {
      */
     @GetMapping(value = "/run", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<Map<String, Object>> run(@RequestParam(value = "message", defaultValue = "Let's, begin!") String message) {
-        return simpleGraphApp.stream(message);
+        return greetingGraphApp.stream(message);
     }
 }

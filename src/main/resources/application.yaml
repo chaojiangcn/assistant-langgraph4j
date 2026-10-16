@@ -6,4 +6,4 @@ spring:
       api-key: ${DEEPSEEK_API_KEY:}
       chat:
         model: deepseek-v4-flash
-        temperature: 0.8
+#        temperature: 0.8

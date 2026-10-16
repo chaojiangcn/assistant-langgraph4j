@@ -77,7 +77,9 @@ mvn spring-boot:run
 | --- | --- | --- |
 | GET | `/ai/generate?message=` | 调用 DeepSeek，一次返回结果 |
 | GET | `/ai/generateStream?message=` | 调用 DeepSeek，流式返回 |
-| GET | `/ai/graph/run?message=` | 执行工作流，`text/event-stream`，每个节点一条事件 |
+| GET | `/ai/graph/run?message=` | 执行问候工作流，`text/event-stream`，每个节点一条事件 |
+| GET | `/ai/pet/run?message=&conversationId=` | 执行养宠助手，`text/event-stream`，每个节点一条事件 |
+| GET | `/ai/pet/cancel?runId=` | 取消指定的一轮执行，会话记忆保留 |
 
 工作流示例：
 
@@ -91,4 +93,41 @@ curl -N "http://localhost:8080/ai/graph/run?message=Let's,%20begin!"
 data:{"node":"greeter","messages":["Let's, begin!","Hello from GreeterNode!"]}
 ```
 
-不传 `message` 时，聊天接口默认是 `Tell me a joke`，工作流默认是 `Let's, begin!`。
+不传 `message` 时，聊天接口默认是 `Tell me a joke`，问候工作流默认是 `Let's, begin!`。
+
+## 养宠助手
+
+`GET /ai/pet/run?message=&conversationId=` 以 `text/event-stream` 执行养宠助手。空白 `message` 返回 400。省略 `message` 时默认为 `你好`。省略 `conversationId` 会新建会话，每条 SSE 事件都会带回该标识，下次请求原样传入即可继续。每一次 `/run` 还会生成独立的 `runId`。服务节点目前返回调试文案。宠物档案和病例摘要是进程内 mock 数据。
+
+先进入 `load_context` 装入会话与档案，再进入 `intent` 识别意图。日常记录、花费记录、健康记录、健康查询做完即结束。闲聊和意图确认进入 `follow_up` 追问。
+
+```mermaid
+flowchart TD
+    START([START]) --> loadContext[load_context 装入上下文]
+    loadContext --> intent[intent 意图识别]
+    intent -->|daily| daily[daily 日常记录]
+    intent -->|expense| expense[expense 花费记录]
+    intent -->|health| health[health 健康记录]
+    intent -->|health_query| healthQuery[health_query 健康查询]
+    intent -->|clarify| clarify[clarify 意图确认]
+    intent -->|chat| chat[chat 闲聊]
+    daily --> END([END])
+    expense --> END
+    health --> END
+    healthQuery --> END
+    clarify --> followUp[follow_up 追问]
+    chat --> followUp
+    followUp --> END
+```
+
+「皮皮今天吐了一点白色的液体」会走到 `clarify`，再由 `follow_up` 追问是要记下，还是想问问要不要就医。下一轮带上返回的 `conversationId`，发送「帮我记一下」，会进入 `health`。
+
+```bash
+curl -N "http://localhost:8080/ai/pet/run?message=皮皮今天吐了一点白色的液体"
+curl -N "http://localhost:8080/ai/pet/run?message=帮我记一下&conversationId=粘贴上一步返回的id"
+curl "http://localhost:8080/ai/pet/cancel?runId=粘贴本轮返回的runId"
+```
+
+`conversationId` 表示整段对话，`runId` 表示这一次 `/run`。取消时带 `runId`。会话和已完成的对话都保留，输入框下一次发送继续带同一个 `conversationId`。前端直接断开 SSE 连接，效果相同。
+
+每条事件包含节点名、`conversationId`、`runId`、识别出的意图，以及该步结束时的消息快照。

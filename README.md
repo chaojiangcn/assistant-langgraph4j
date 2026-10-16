@@ -77,7 +77,9 @@ The default port is `8080`.
 | --- | --- | --- |
 | GET | `/ai/generate?message=` | Call DeepSeek and return one response |
 | GET | `/ai/generateStream?message=` | Call DeepSeek and stream the response |
-| GET | `/ai/graph/run?message=` | Run the workflow as `text/event-stream`, one event per node |
+| GET | `/ai/graph/run?message=` | Run the greeting workflow as `text/event-stream`, one event per node |
+| GET | `/ai/pet/run?message=&conversationId=` | Run the pet care assistant as `text/event-stream`, one event per node |
+| GET | `/ai/pet/cancel?runId=` | Cancel that in-flight run and keep the conversation |
 
 Workflow example:
 
@@ -91,4 +93,41 @@ Each event contains the node name and a snapshot of the messages at the end of t
 data:{"node":"greeter","messages":["Let's, begin!","Hello from GreeterNode!"]}
 ```
 
-When `message` is omitted, the chat endpoints default to `Tell me a joke`, and the workflow defaults to `Let's, begin!`.
+When `message` is omitted, the chat endpoints default to `Tell me a joke`, and the greeting workflow defaults to `Let's, begin!`.
+
+## Pet care assistant
+
+`GET /ai/pet/run?message=&conversationId=` runs the pet care assistant as `text/event-stream`. A blank `message` returns 400. When `message` is omitted, the default is `你好`. Omit `conversationId` to start a new conversation; every SSE event returns that id to reuse. Each `/run` also gets its own `runId`. Service nodes currently return debug text. Pet profile and case history are mock data in process memory.
+
+The graph loads context first, then classifies intent. Daily records, expense records, health records, and health queries finish at `END`. Chat and clarification continue to `follow_up`.
+
+```mermaid
+flowchart TD
+    START([START]) --> loadContext[load_context]
+    loadContext --> intent[intent]
+    intent -->|daily| daily[daily record]
+    intent -->|expense| expense[expense record]
+    intent -->|health| health[health record]
+    intent -->|health_query| healthQuery[health query]
+    intent -->|clarify| clarify[clarify]
+    intent -->|chat| chat[chat]
+    daily --> END([END])
+    expense --> END
+    health --> END
+    healthQuery --> END
+    clarify --> followUp[follow_up]
+    chat --> followUp
+    followUp --> END
+```
+
+A sentence such as "皮皮今天吐了一点白色的液体" goes to `clarify`, then `follow_up` asks whether to record it or ask about seeing a vet. Reuse the returned `conversationId` and send "帮我记一下" to continue into `health`.
+
+```bash
+curl -N "http://localhost:8080/ai/pet/run?message=皮皮今天吐了一点白色的液体"
+curl -N "http://localhost:8080/ai/pet/run?message=帮我记一下&conversationId=PASTE_ID_HERE"
+curl "http://localhost:8080/ai/pet/cancel?runId=PASTE_RUN_ID_HERE"
+```
+
+`conversationId` is the chat thread. `runId` is one `/run` execution. Cancel with `runId`. The conversation stays, and the next message reuses `conversationId`. Closing the SSE connection cancels that run the same way.
+
+Each event contains the node name, `conversationId`, `runId`, the recognized intent, and a snapshot of the messages at the end of that step.

@@ -38,7 +38,7 @@ public final class GraphStreams {
     /**
      * @param graph          已编译的图
      * @param input          初始状态
-     * @param conversationId 会话标识，写入 {@link RunnableConfig#threadId()}；为空时使用空配置
+     * @param sessionId 养宠助手这一段对话的标识，写入 {@link RunnableConfig#threadId()}；为空时使用空配置。不是登录态
      * @param cancelled      本轮被取消时置为 true；可为空
      * @param register       登记停止动作；可为空
      * @param clear          本轮结束后摘掉登记；可为空
@@ -49,14 +49,14 @@ public final class GraphStreams {
     public static <S extends AgentState> Flux<Map<String, Object>> stream(
             CompiledGraph<S> graph,
             Map<String, Object> input,
-            String conversationId,
+            String sessionId,
             AtomicBoolean cancelled,
             Consumer<Runnable> register,
             Consumer<Runnable> clear,
             Function<NodeOutput<S>, Map<String, Object>> toStep) {
-        RunnableConfig config = conversationId == null || conversationId.isBlank()
+        RunnableConfig config = sessionId == null || sessionId.isBlank()
                 ? RunnableConfig.empty()
-                : RunnableConfig.builder().threadId(conversationId).build();
+                : RunnableConfig.builder().threadId(sessionId).build();
         AtomicBoolean cancelledFlag = cancelled == null ? new AtomicBoolean() : cancelled;
         return Flux.create(sink -> {
             AsyncGenerator.Cancellable<NodeOutput<S>> generator = graph.stream(GraphInput.args(input), config);

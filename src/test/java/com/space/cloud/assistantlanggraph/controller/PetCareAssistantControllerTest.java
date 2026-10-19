@@ -24,35 +24,35 @@ class PetCareAssistantControllerTest {
      */
     @Test
     void rejectsBlankMessageBeforeStartingTheGraph() throws Exception {
-        mockMvc.perform(get("/ai/pet/run").param("message", "   "))
+        mockMvc.perform(get("/ai/pet/chat").param("message", "   "))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(graphApp);
     }
 
     /**
-     * 空白执行标识在取消之前返回 400。
+     * 空白 chatId 在取消之前返回 400。
      */
     @Test
-    void rejectsBlankRunIdWhenCancelling() throws Exception {
-        mockMvc.perform(get("/ai/pet/cancel").param("runId", "   "))
+    void rejectsBlankChatIdWhenCancelling() throws Exception {
+        mockMvc.perform(get("/ai/pet/cancel").param("chatId", "   "))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(graphApp);
     }
 
     /**
-     * 取消接口按本轮 runId 停止执行。
+     * 取消接口按本次 chatId 停止执行。
      */
     @Test
-    void cancelsTheRunningTurnByRunId() throws Exception {
-        when(graphApp.cancel("run-1")).thenReturn(true);
+    void cancelsTheRunningTurnByChatId() throws Exception {
+        when(graphApp.cancel("chat-1")).thenReturn(true);
 
-        mockMvc.perform(get("/ai/pet/cancel").param("runId", "run-1"))
+        mockMvc.perform(get("/ai/pet/cancel").param("chatId", "chat-1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.runId").value("run-1"))
+                .andExpect(jsonPath("$.chatId").value("chat-1"))
                 .andExpect(jsonPath("$.cancelled").value(true));
 
-        verify(graphApp).cancel("run-1");
+        verify(graphApp).cancel("chat-1");
     }
 }

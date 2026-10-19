@@ -21,11 +21,11 @@ public class PetCareAssistantState extends AgentState {
     /** 意图路由值的状态键。 */
     public static final String INTENT_KEY = "intent";
 
-    /** 会话标识的状态键。 */
-    public static final String CONVERSATION_ID_KEY = "conversationId";
+    /** 养宠助手这一段对话的标识，不是登录态。 */
+    public static final String SESSION_ID_KEY = "sessionId";
 
-    /** 本轮执行标识的状态键。 */
-    public static final String RUN_ID_KEY = "runId";
+    /** 一次 SSE 执行的标识。 */
+    public static final String CHAT_ID_KEY = "chatId";
 
     /** 近期对话历史的状态键。 */
     public static final String HISTORY_KEY = "history";
@@ -45,8 +45,8 @@ public class PetCareAssistantState extends AgentState {
         Map<String, Channel<?>> schema = new HashMap<>();
         schema.put(MESSAGES_KEY, Channels.appender(ArrayList::new));
         schema.put(INTENT_KEY, Channels.base(() -> ""));
-        schema.put(CONVERSATION_ID_KEY, Channels.base(() -> ""));
-        schema.put(RUN_ID_KEY, Channels.base(() -> ""));
+        schema.put(SESSION_ID_KEY, Channels.base(() -> ""));
+        schema.put(CHAT_ID_KEY, Channels.base(() -> ""));
         schema.put(HISTORY_KEY, Channels.base(() -> List.of()));
         schema.put(PET_PROFILE_KEY, Channels.base(() -> ""));
         schema.put(CASE_SUMMARY_KEY, Channels.base(() -> ""));
@@ -75,17 +75,17 @@ public class PetCareAssistantState extends AgentState {
     }
 
     /**
-     * @return 会话标识
+     * @return 养宠助手这一段对话的标识，不是登录态
      */
-    public String conversationId() {
-        return this.<String>value(CONVERSATION_ID_KEY).orElse("");
+    public String sessionId() {
+        return this.<String>value(SESSION_ID_KEY).orElse("");
     }
 
     /**
-     * @return 本轮执行标识
+     * @return 一次 SSE 执行的标识
      */
-    public String runId() {
-        return this.<String>value(RUN_ID_KEY).orElse("");
+    public String chatId() {
+        return this.<String>value(CHAT_ID_KEY).orElse("");
     }
 
     /**

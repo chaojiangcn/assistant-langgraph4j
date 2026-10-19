@@ -33,7 +33,7 @@ public class LoadContextNode implements NodeAction<PetCareAssistantState> {
     public Map<String, Object> apply(PetCareAssistantState state) {
         PetProfile pet = petContextRepository.defaultPet();
         return Map.of(
-                PetCareAssistantState.HISTORY_KEY, conversationMemory.history(state.conversationId()),
+                PetCareAssistantState.HISTORY_KEY, conversationMemory.history(state.sessionId()),
                 PetCareAssistantState.PET_PROFILE_KEY, pet.summary(),
                 PetCareAssistantState.CASE_SUMMARY_KEY, petContextRepository.caseSummary(pet.petId())
         );

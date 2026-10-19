@@ -73,16 +73,16 @@ public class PetCareAssistant {
 
     /**
      * @param message        用户原文
-     * @param conversationId 会话标识，可为空；为空时新建
+     * @param sessionId 养宠助手这一段对话的标识，可为空；为空时新建。不是登录态
      * @return 按节点顺序推送的执行结果
      */
-    public Flux<Map<String, Object>> stream(String message, String conversationId) {
-        String id = conversationMemory.open(conversationId);
-        String runId = UUID.randomUUID().toString();
+    public Flux<Map<String, Object>> stream(String message, String sessionId) {
+        String id = conversationMemory.open(sessionId);
+        String chatId = UUID.randomUUID().toString();
         Map<String, Object> input = new HashMap<>();
         input.put(PetCareAssistantState.MESSAGES_KEY, message);
-        input.put(PetCareAssistantState.CONVERSATION_ID_KEY, id);
-        input.put(PetCareAssistantState.RUN_ID_KEY, runId);
+        input.put(PetCareAssistantState.SESSION_ID_KEY, id);
+        input.put(PetCareAssistantState.CHAT_ID_KEY, chatId);
 
         AtomicReference<String> lastAssistantReply = new AtomicReference<>("");
         AtomicBoolean cancelled = new AtomicBoolean();
@@ -91,25 +91,25 @@ public class PetCareAssistant {
                         input,
                         id,
                         cancelled,
-                        stop -> activeRuns.register(id, runId, stop),
-                        stop -> activeRuns.clear(id, runId, stop),
+                        stop -> activeRuns.register(id, chatId, stop),
+                        stop -> activeRuns.clear(id, chatId, stop),
                         PetCareAssistant::toStep)
                 .doOnNext(step -> rememberAssistantReply(step, lastAssistantReply))
                 .doOnComplete(() -> {
                     if (!cancelled.get()) {
-                        conversationMemory.append(id, runId, message, lastAssistantReply.get());
+                        conversationMemory.append(id, chatId, message, lastAssistantReply.get());
                     }
                 });
     }
 
     /**
-     * 按本轮执行标识取消。对话记录保留，之后仍用同一 conversationId 继续。
+     * 按这一次 SSE 的标识取消。对话记录保留，之后仍用同一 sessionId 继续。
      *
-     * @param runId 本轮执行标识
-     * @return 是否取消了一轮正在执行的工作流
+     * @param chatId 一次 SSE 的标识
+     * @return 是否取消了一次正在执行的工作流
      */
-    public boolean cancel(String runId) {
-        return activeRuns.cancel(runId);
+    public boolean cancel(String chatId) {
+        return activeRuns.cancel(chatId);
     }
 
     private CompiledGraph<PetCareAssistantState> compile(
@@ -147,8 +147,8 @@ public class PetCareAssistant {
         return Map.of(
                 "node", item.node(),
                 "intent", item.state().intent(),
-                "conversationId", item.state().conversationId(),
-                "runId", item.state().runId(),
+                "sessionId", item.state().sessionId(),
+                "chatId", item.state().chatId(),
                 "messages", List.copyOf(item.state().messages())
         );
     }

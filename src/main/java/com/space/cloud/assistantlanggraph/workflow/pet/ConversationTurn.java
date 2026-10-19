@@ -7,9 +7,9 @@ import java.io.Serializable;
  *
  * @param role  角色，{@code user} 或 {@code assistant}
  * @param text  文本内容
- * @param runId 产生这条发言的执行标识；历史回放时可为空
+ * @param chatId 产生这条发言的一次 SSE 标识；历史回放时可为空
  */
-public record ConversationTurn(String role, String text, String runId) implements Serializable {
+public record ConversationTurn(String role, String text, String chatId) implements Serializable {
 
     /**
      * @param role 角色

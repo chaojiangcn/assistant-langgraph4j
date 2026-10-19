@@ -9,7 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 进程内会话记忆。按 conversationId 保存近期对话，重启后清空。
+ * 进程内对话记忆。按 sessionId 保存养宠助手这一段对话，不表示登录态。重启后清空。
  */
 @Component
 public class ConversationMemory {
@@ -21,13 +21,13 @@ public class ConversationMemory {
     /**
      * 打开已有会话，或在没有标识时新建一个。
      *
-     * @param conversationId 请求里的会话标识，可为空
-     * @return 实际使用的会话标识
+     * @param sessionId 养宠助手这一段对话的标识，可为空。不是登录态
+     * @return 实际使用的 sessionId
      */
-    public String open(String conversationId) {
-        if (conversationId != null && !conversationId.isBlank()) {
-            store.computeIfAbsent(conversationId.strip(), id -> new ArrayList<>());
-            return conversationId.strip();
+    public String open(String sessionId) {
+        if (sessionId != null && !sessionId.isBlank()) {
+            store.computeIfAbsent(sessionId.strip(), id -> new ArrayList<>());
+            return sessionId.strip();
         }
         String id = UUID.randomUUID().toString();
         store.put(id, new ArrayList<>());
@@ -35,11 +35,11 @@ public class ConversationMemory {
     }
 
     /**
-     * @param conversationId 会话标识
-     * @return 该会话的近期对话快照
+     * @param sessionId 养宠助手这一段对话的标识
+     * @return 该段对话的近期快照
      */
-    public List<ConversationTurn> history(String conversationId) {
-        List<ConversationTurn> turns = store.get(conversationId);
+    public List<ConversationTurn> history(String sessionId) {
+        List<ConversationTurn> turns = store.get(sessionId);
         if (turns == null || turns.isEmpty()) {
             return List.of();
         }
@@ -51,16 +51,17 @@ public class ConversationMemory {
     /**
      * 追加本轮用户原文和助手回复。节点中途的调试句由调用方筛过后再传入。
      *
-     * @param conversationId 会话标识
-     * @param userText       本轮用户原文
-     * @param assistantText  本轮最后一条助手回复
+     * @param sessionId     养宠助手这一段对话的标识
+     * @param chatId        一次 SSE 的标识
+     * @param userText      本轮用户原文
+     * @param assistantText 本轮最后一条助手回复
      */
-    public void append(String conversationId, String runId, String userText, String assistantText) {
-        if (conversationId == null || conversationId.isBlank()) {
+    public void append(String sessionId, String chatId, String userText, String assistantText) {
+        if (sessionId == null || sessionId.isBlank()) {
             return;
         }
-        String executionId = runId == null ? "" : runId;
-        List<ConversationTurn> turns = store.computeIfAbsent(conversationId, id -> new ArrayList<>());
+        String executionId = chatId == null ? "" : chatId;
+        List<ConversationTurn> turns = store.computeIfAbsent(sessionId, id -> new ArrayList<>());
         synchronized (turns) {
             if (userText != null && !userText.isBlank()) {
                 turns.add(new ConversationTurn("user", userText, executionId));

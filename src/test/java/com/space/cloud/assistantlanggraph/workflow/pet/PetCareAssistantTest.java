@@ -53,21 +53,21 @@ class PetCareAssistantTest {
                 .collectList()
                 .block(Duration.ofSeconds(5));
         assertThat(first).isNotNull();
-        String conversationId = String.valueOf(first.get(0).get("conversationId"));
-        assertThat(conversationId).isNotBlank();
+        String sessionId = String.valueOf(first.get(0).get("sessionId"));
+        assertThat(sessionId).isNotBlank();
         assertThat(first).extracting(step -> step.get("node"))
                 .containsExactly("__START__", "load_context", "intent", "clarify", "follow_up", "__END__");
-        String firstRunId = String.valueOf(first.get(0).get("runId"));
-        assertThat(firstRunId).isNotBlank();
+        String firstChatId = String.valueOf(first.get(0).get("chatId"));
+        assertThat(firstChatId).isNotBlank();
 
-        List<Map<String, Object>> second = app.stream("帮我记一下", conversationId)
+        List<Map<String, Object>> second = app.stream("帮我记一下", sessionId)
                 .collectList()
                 .block(Duration.ofSeconds(5));
         assertThat(second).isNotNull();
         assertThat(second).extracting(step -> step.get("node"))
                 .containsExactly("__START__", "load_context", "intent", "health", "__END__");
-        assertThat(String.valueOf(second.get(0).get("conversationId"))).isEqualTo(conversationId);
-        assertThat(String.valueOf(second.get(0).get("runId"))).isNotBlank().isNotEqualTo(firstRunId);
+        assertThat(String.valueOf(second.get(0).get("sessionId"))).isEqualTo(sessionId);
+        assertThat(String.valueOf(second.get(0).get("chatId"))).isNotBlank().isNotEqualTo(firstChatId);
         assertThat(second.get(3).get("messages").toString())
                 .contains("[健康记录]")
                 .contains("皮皮，猫，3岁");
@@ -101,7 +101,7 @@ class PetCareAssistantTest {
         AtomicReference<String> runningId = new AtomicReference<>();
         Thread runner = new Thread(() -> {
             List<Map<String, Object>> steps = app.stream("等等再看", "conv-keep")
-                    .doOnNext(step -> runningId.compareAndSet(null, String.valueOf(step.get("runId"))))
+                    .doOnNext(step -> runningId.compareAndSet(null, String.valueOf(step.get("chatId"))))
                     .collectList()
                     .block(Duration.ofSeconds(5));
             assertThat(steps).isNotNull();
@@ -118,8 +118,8 @@ class PetCareAssistantTest {
         assertThat(next).isNotNull();
         assertThat(next).extracting(step -> step.get("node"))
                 .containsExactly("__START__", "load_context", "intent", "health", "__END__");
-        assertThat(String.valueOf(next.get(0).get("conversationId"))).isEqualTo("conv-keep");
-        assertThat(String.valueOf(next.get(0).get("runId"))).isNotBlank();
+        assertThat(String.valueOf(next.get(0).get("sessionId"))).isEqualTo("conv-keep");
+        assertThat(String.valueOf(next.get(0).get("chatId"))).isNotBlank();
     }
 
     private static void awaitRunId(AtomicReference<String> runningId) throws InterruptedException {
@@ -138,8 +138,8 @@ class PetCareAssistantTest {
         assertThat(steps.get(3).get("messages").toString()).contains(servicePrefix);
         assertThat(steps.get(4).get("intent")).isEqualTo(intent);
         assertThat(steps.get(4).get("messages").toString()).contains(question);
-        assertThat(String.valueOf(steps.get(0).get("conversationId"))).isNotBlank();
-        assertThat(String.valueOf(steps.get(0).get("runId"))).isNotBlank();
+        assertThat(String.valueOf(steps.get(0).get("sessionId"))).isNotBlank();
+        assertThat(String.valueOf(steps.get(0).get("chatId"))).isNotBlank();
     }
 
     private void assertRoute(String message, String node, String replyPrefix) {
@@ -151,7 +151,7 @@ class PetCareAssistantTest {
         Map<String, Object> serviceStep = steps.get(3);
         assertThat(serviceStep.get("intent")).isEqualTo(node);
         assertThat(serviceStep.get("messages").toString()).contains(replyPrefix);
-        assertThat(String.valueOf(steps.get(0).get("conversationId"))).isNotBlank();
-        assertThat(String.valueOf(steps.get(0).get("runId"))).isNotBlank();
+        assertThat(String.valueOf(steps.get(0).get("sessionId"))).isNotBlank();
+        assertThat(String.valueOf(steps.get(0).get("chatId"))).isNotBlank();
     }
 }
